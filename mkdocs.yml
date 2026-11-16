@@ -4,7 +4,7 @@ site_description: >-
   Data. Build an event-driven AI pipeline with Confluent Cloud, Flink SQL and IBM
   watsonx Orchestrate, using IBM Bob as your pair programmer.
 site_author: Ivor Rothwell, IBM
-site_url: https://irpk026.github.io/docs-advanced/
+site_url: https://marcdecker.github.io/EYlabwxo/
 docs_dir: docs
 site_dir: site
 strict: true

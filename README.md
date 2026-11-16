@@ -19,7 +19,7 @@ Build a static site into `site/` with `mkdocs build`.
 
 ### Option 1: GitHub Pages
 
-The repository is configured for GitHub Pages (`https://irpk026.github.io/docs-advanced/`). Deploy with:
+The repository is configured for GitHub Pages (`https://marcdecker.github.io/EYlabwxo/`). Deploy with:
 
 ```bash
 source .venv/bin/activate
