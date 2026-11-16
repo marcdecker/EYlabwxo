@@ -1,0 +1,397 @@
+#!/usr/bin/env bash
+# check-lab.sh — preflight check for the Event-Driven AI Agents lab
+#
+# Verifies everything the lab needs, in the order the lab needs it, and tells
+# you which section to go back to when something is missing. Safe to run at any
+# stage: things from sections you haven't reached yet simply show as still to do.
+#
+# Usage:
+#   bash check-lab.sh              # all offline + API checks (safe, read-only)
+#   bash check-lab.sh --e2e        # also run the real pipeline (writes orders + tickets)
+#   bash check-lab.sh --help
+#
+# Run it from your bobchestrate-confluent/ workspace folder.
+
+set -uo pipefail
+
+RUN_E2E=0
+for arg in "$@"; do
+  case "$arg" in
+    --e2e)  RUN_E2E=1 ;;
+    --help|-h)
+      sed -n '2,/^$/p' "$0" | sed 's/^#\{1,\} \{0,1\}//; s/^#$//'
+      exit 0 ;;
+    *) echo "Unknown option: $arg (try --help)" >&2; exit 2 ;;
+  esac
+done
+
+# ── Output helpers ───────────────────────────────────────────────────────────
+if [ -t 1 ]; then
+  BOLD=$'\033[1m'; RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; DIM=$'\033[2m'; RST=$'\033[0m'
+else
+  BOLD=""; RED=""; GRN=""; YLW=""; DIM=""; RST=""
+fi
+
+PASS=0; FAIL=0; WARN=0
+KAFKA_PLACEHOLDER=0
+SR_PLACEHOLDER=0
+S4_PENDING=0
+WXO_DOWN=0
+FAILED_ITEMS=()
+
+ok()   { printf '  %s✓%s %s\n' "$GRN" "$RST" "$1"; PASS=$((PASS+1)); }
+bad()  { printf '  %s✗%s %s\n' "$RED" "$RST" "$1"; [ $# -gt 1 ] && printf '      %s↳ %s%s\n' "$DIM" "$2" "$RST"; FAIL=$((FAIL+1)); FAILED_ITEMS+=("$1"); }
+warn() { printf '  %s!%s %s\n' "$YLW" "$RST" "$1"; [ $# -gt 1 ] && printf '      %s↳ %s%s\n' "$DIM" "$2" "$RST"; WARN=$((WARN+1)); }
+head_() { printf '\n%s%s%s\n' "$BOLD" "$1" "$RST"; }
+
+# Portable timeout. GNU `timeout` is absent on stock macOS, and on Git Bash for
+# Windows `timeout` resolves to Windows' timeout.exe, which takes /T and needs a
+# console handle — unusable here. Probe for --version to confirm it's GNU; if it
+# isn't, fall back to the background watchdog below.
+TIMEOUT_BIN=""
+for t in timeout gtimeout; do
+  if command -v "$t" >/dev/null 2>&1 && "$t" --version >/dev/null 2>&1; then
+    TIMEOUT_BIN="$t"
+    break
+  fi
+done
+
+run_limited() {  # run_limited <seconds> <command...>
+  local secs="$1"; shift
+  if [ -n "$TIMEOUT_BIN" ]; then
+    "$TIMEOUT_BIN" "$secs" "$@"
+  else
+    "$@" &
+    local pid=$!
+    ( sleep "$secs"; kill -TERM "$pid" 2>/dev/null ) &
+    local watcher=$!
+    wait "$pid" 2>/dev/null
+    local rc=$?
+    kill "$watcher" 2>/dev/null
+    return "$rc"
+  fi
+}
+
+# Read one key from .env without executing the file. Empty if unset/missing.
+ENV_FILE=""
+get_env() {
+  [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ] || return 0
+  grep -E "^[[:space:]]*$1=" "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- \
+    | sed 's/^["'"'"']//; s/["'"'"']$//; s/[[:space:]]*#.*$//; s/[[:space:]]*$//'
+}
+
+# ── 1. Local tooling ─────────────────────────────────────────────────────────
+head_ "1. Local tooling"
+
+PY=""
+for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
+if [ -z "$PY" ]; then
+  bad "Python not found" "Install Python 3.12 or 3.13 — Setup, Step 4"
+else
+  PYV=$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  case "$PYV" in
+    3.12|3.13) ok "Python $PYV" ;;
+    *) bad "Python $PYV is unsupported" "The lab needs 3.12 or 3.13 — Setup, Step 4" ;;
+  esac
+fi
+
+command -v uv >/dev/null 2>&1 \
+  && ok "uv $(uv --version 2>/dev/null | awk '{print $2}')" \
+  || bad "uv not installed" "Setup, Step 5"
+
+command -v orchestrate >/dev/null 2>&1 \
+  && ok "watsonx Orchestrate ADK $(orchestrate --version 2>/dev/null | grep -oE '[0-9][0-9.-]*[0-9]' | head -1)" \
+  || bad "orchestrate CLI not found" "Activate your venv, then Setup, Step 10"
+
+command -v curl >/dev/null 2>&1 && ok "curl" || bad "curl not found"
+
+# ── 2. Workspace layout ──────────────────────────────────────────────────────
+head_ "2. Workspace layout"
+
+ROOT=""
+for cand in . .. ./bobchestrate-confluent; do
+  if [ -d "$cand/retail-inventory-optimization" ]; then ROOT="$cand"; break; fi
+done
+
+if [ -z "$ROOT" ]; then
+  bad "retail-inventory-optimization/ not found" "Run this from your bobchestrate-confluent/ folder — Setup, Step 6"
+else
+  ok "workspace root: $(cd "$ROOT" && pwd)"
+  [ -d "$ROOT/.bob" ] && ok ".bob/ configuration present" \
+    || warn ".bob/ not found" "Bob won't have WXO Agent Architect mode — Setup, Step 6"
+
+  CONSUMER="$ROOT/retail-inventory-optimization/fashion-inventory-consumer"
+  SETUP="$ROOT/retail-inventory-optimization/fashion-inventory-setup"
+
+  for f in produce_inventory_events.py consume_velocity_alerts.py \
+           consume_velocity_alerts_with_agent.py orchestrate_client.py \
+           agent_payload_builder.py agent_response_producer.py response_validator.py; do
+    [ -f "$CONSUMER/$f" ] && ok "$f" || bad "missing $f" "Re-extract the workspace zip"
+  done
+
+  for f in schemas/fashion-inventory-event.schema.json \
+           schemas/velocity-anomaly-alert.schema.json \
+           schemas/agent-response.schema.json \
+           sql/velocity_anomaly_detection.sql \
+           data/test_winter_jacket_spike.csv \
+           data/store_locations.csv; do
+    [ -f "$SETUP/$f" ] && ok "$(basename "$f")" || bad "missing $f" "Re-extract the workspace zip"
+  done
+
+  KB="$ROOT/retail-inventory-optimization/labs/part2-watsonx-orchestrate/inventory-alert-demo-knowledge"
+  if [ -d "$KB" ]; then
+    n=$(find "$KB" -maxdepth 1 -type f | wc -l | tr -d ' ')
+    [ "$n" -ge 6 ] && ok "knowledge base documents ($n files)" \
+      || warn "knowledge base has $n files, expected 6" "Section 4.4 uploads all six"
+  else
+    bad "knowledge base folder missing" "Re-extract the workspace zip"
+  fi
+fi
+
+# ── 3. Credentials in .env ───────────────────────────────────────────────────
+head_ "3. Credentials (.env)"
+
+[ -n "${CONSUMER:-}" ] && ENV_FILE="$CONSUMER/.env"
+if [ -z "$ENV_FILE" ] || [ ! -f "$ENV_FILE" ]; then
+  bad ".env not found" "cp .env.example .env in fashion-inventory-consumer/ — lab 'Before you start'"
+else
+  ok ".env found"
+
+  for v in KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET \
+           SCHEMA_REGISTRY_URL SCHEMA_REGISTRY_API_KEY SCHEMA_REGISTRY_API_SECRET \
+           WXO_INSTANCE_URL WXO_API_KEY WXO_AGENT_ID_OR_NAME WXO_INSTANCE_CLOUD; do
+    val=$(get_env "$v")
+    case "$v" in
+      WXO_*) where="Section 5.1" ;;
+      *)     where="Section 3.1" ;;
+    esac
+    if [ -z "$val" ]; then
+      bad "$v is empty" "set it in .env — $where"
+    elif printf '%s' "$val" | grep -qiE 'your_|xxxxx|changeme|<.*>|placeholder|your-'; then
+      bad "$v still holds a placeholder" "value: $val — fill it in: $where"
+      case "$v" in
+        KAFKA_*)  KAFKA_PLACEHOLDER=1 ;;
+        SCHEMA_*) SR_PLACEHOLDER=1 ;;
+      esac
+    else
+      ok "$v is set"
+    fi
+  done
+
+  CLOUD=$(get_env WXO_INSTANCE_CLOUD)
+  case "$CLOUD" in
+    ibmcloud|aws|"") : ;;
+    *) warn "WXO_INSTANCE_CLOUD='$CLOUD' is unusual" "expected 'ibmcloud' or 'aws' — Section 5.1" ;;
+  esac
+
+  KBS=$(get_env KAFKA_BOOTSTRAP_SERVERS)
+  if [ -n "$KBS" ] && ! printf '%s' "$KBS" | grep -qE ':[0-9]+$'; then
+    warn "KAFKA_BOOTSTRAP_SERVERS has no port" "expected host:9092 — Section 3.1"
+  fi
+fi
+
+# ── 4. Confluent Cloud ───────────────────────────────────────────────────────
+head_ "4. Confluent Cloud"
+
+SR_URL=$(get_env SCHEMA_REGISTRY_URL)
+SR_KEY=$(get_env SCHEMA_REGISTRY_API_KEY)
+SR_SEC=$(get_env SCHEMA_REGISTRY_API_SECRET)
+
+if [ "$SR_PLACEHOLDER" -eq 1 ]; then
+  warn "skipping Schema Registry checks" "fill in the SCHEMA_REGISTRY_* values first — Section 3.1"
+elif [ -z "$SR_URL" ] || [ -z "$SR_KEY" ]; then
+  warn "skipping Schema Registry checks" "credentials not set"
+else
+  SUBJECTS=$(curl -s --max-time 20 -u "$SR_KEY:$SR_SEC" "$SR_URL/subjects" 2>/dev/null)
+  if printf '%s' "$SUBJECTS" | grep -q '^\['; then
+    ok "Schema Registry reachable and credentials accepted"
+    for t in fashion.inventory.events fashion.velocity.anomalies fashion.agent.responses; do
+      printf '%s' "$SUBJECTS" | grep -q "$t" \
+        && ok "schema registered for $t" \
+        || warn "no schema registered for $t" "Section 2.4"
+    done
+  else
+    bad "Schema Registry rejected the request" "check SCHEMA_REGISTRY_* values — Section 2.8"
+  fi
+fi
+
+KBS=$(get_env KAFKA_BOOTSTRAP_SERVERS)
+K_KEY=$(get_env KAFKA_API_KEY)
+K_SEC=$(get_env KAFKA_API_SECRET)
+
+if [ "$KAFKA_PLACEHOLDER" -eq 1 ]; then
+  warn "skipping Kafka checks" "fill in the KAFKA_* values first — Section 3.1"
+elif [ -z "$KBS" ] || [ -z "$K_KEY" ] || [ -z "${ROOT:-}" ]; then
+  warn "skipping Kafka checks" "credentials or workspace not available"
+else
+  KAFKA_OUT=$(cd "$ROOT/retail-inventory-optimization" && \
+    KBS="$KBS" K_KEY="$K_KEY" K_SEC="$K_SEC" uv run python - <<'PYEOF' 2>&1
+import os, sys
+try:
+    from confluent_kafka.admin import AdminClient
+except ImportError:
+    print("NODEPS"); sys.exit(0)
+try:
+    admin = AdminClient({
+        "bootstrap.servers": os.environ["KBS"],
+        "security.protocol": "SASL_SSL",
+        "sasl.mechanisms": "PLAIN",
+        "sasl.username": os.environ["K_KEY"],
+        "sasl.password": os.environ["K_SEC"],
+    })
+    md = admin.list_topics(timeout=20)
+    print("TOPICS " + " ".join(sorted(md.topics)))
+except Exception as e:
+    print("ERROR " + str(e).replace("\n", " ")[:160])
+PYEOF
+  )
+  KAFKA_MARK=$(printf '%s' "$KAFKA_OUT" | grep -E '^(TOPICS|ERROR|NODEPS)' | head -1)
+  case "$KAFKA_MARK" in
+    NODEPS*)
+      warn "confluent-kafka not installed" "run: cd retail-inventory-optimization && uv sync --locked" ;;
+    TOPICS*)
+      ok "Kafka broker reachable, credentials accepted"
+      for t in fashion.inventory.events fashion.velocity.anomalies fashion.agent.responses; do
+        printf '%s' "$KAFKA_MARK" | tr ' ' '\n' | grep -qx "$t" \
+          && ok "topic $t exists" \
+          || bad "topic $t missing" "Section 2.3" ;
+      done
+      for t in fashion.logistics.orders servicenow.incidents; do
+        printf '%s' "$KAFKA_MARK" | tr ' ' '\n' | grep -qx "$t" \
+          && ok "topic $t exists" \
+          || warn "topic $t missing (needed for the action tools)" "Section 2.3" ;
+      done ;;
+    ERROR*)
+      if printf '%s' "$KAFKA_OUT" | grep -qi 'authentication failed'; then
+        bad "Kafka rejected the API key/secret" "KAFKA_API_KEY/SECRET must be a key created on the cluster in KAFKA_BOOTSTRAP_SERVERS — Section 2.8"
+      else
+        bad "cannot reach Kafka" "${KAFKA_MARK#ERROR }"
+      fi ;;
+    *)
+      warn "Kafka check did not run" "$(printf '%s' "$KAFKA_OUT" | tail -1 | cut -c1-120)" ;;
+  esac
+fi
+
+# ── 5. watsonx Orchestrate ───────────────────────────────────────────────────
+head_ "5. watsonx Orchestrate"
+
+# The ADK's list tables wrap long names to fit the terminal ("inventory-alert-know"
+# / "ledge"), which hides them from grep in a narrow window. Render them wide.
+export COLUMNS=1000
+
+if ! command -v orchestrate >/dev/null 2>&1; then
+  warn "skipping wxO checks" "orchestrate CLI not on PATH"
+else
+  if ENVS=$(orchestrate env list 2>&1); then
+    ok "ADK responds"
+  else
+    bad "orchestrate env list failed" "$(printf '%s' "$ENVS" | head -1)"
+  fi
+
+  # The ADK prints "[ERROR] ..." on stdout and still exits 0 when the session has
+  # expired, so read the text, not the exit code.
+  TOOLS=$(orchestrate tools list 2>&1)
+  if [ -z "$TOOLS" ] || printf '%s' "$TOOLS" | grep -q '\[ERROR\]'; then
+    WXO_MSG=$(printf '%s' "$TOOLS" | grep '\[ERROR\]' | head -1 | sed $'s/\033\\[[0-9;]*m//g' | sed 's/^\[ERROR\] - //; s/\. .*$/./' | cut -c1-110)
+    bad "cannot query watsonx Orchestrate" "${WXO_MSG:-no response} — re-run: orchestrate env activate <env> -a <key> (Setup, Step 12.2)"
+    WXO_DOWN=1
+  else
+    for t in get_store_location get_weather_forecast; do
+      if printf '%s' "$TOOLS" | grep -q "$t"; then ok "tool $t"; else bad "tool $t missing" "Section 4.1 / 4.2"; S4_PENDING=1; fi
+    done
+    for t in create_restock_order open_servicenow_ticket; do
+      printf '%s' "$TOOLS" | grep -q "$t" && ok "action tool $t" || warn "action tool $t missing" "Section 4.7"
+    done
+  fi
+
+  KBL=""; [ "$WXO_DOWN" -eq 0 ] && KBL=$(orchestrate knowledge-bases list 2>/dev/null || echo "")
+  if [ "$WXO_DOWN" -eq 1 ]; then
+    warn "skipping knowledge base and agent checks" "fix the watsonx Orchestrate connection above first"
+  elif printf '%s' "$KBL" | grep -q "inventory-alert-knowledge"; then
+    ok "knowledge base inventory-alert-knowledge"
+  else
+    bad "knowledge base missing" "Section 4.4"; S4_PENDING=1
+  fi
+
+  AGENTS=""; [ "$WXO_DOWN" -eq 0 ] && AGENTS=$(orchestrate agents list 2>/dev/null || echo "")
+  if [ "$WXO_DOWN" -eq 1 ]; then
+    :
+  elif printf '%s' "$AGENTS" | grep -qiE "fashion.*inventory|Fashion_Inventory_Alert_Processor"; then
+    ok "agent Fashion_Inventory_Alert_Processor"
+    # The agent lists its tools by ID, so map them to names. An imported action
+    # tool the agent doesn't have means Section 4.7 step 5 hasn't been done.
+    if [ -n "$PY" ] && printf '%s' "$TOOLS" | grep -q "create_restock_order"; then
+      UNATTACHED=$(TJ="$(orchestrate tools list -v 2>/dev/null)" AJ="$(orchestrate agents list -v 2>/dev/null)" "$PY" - <<'PYEOF' 2>/dev/null
+import json, os
+try:
+    ids = {t["id"]: t["name"] for t in json.loads(os.environ["TJ"])}
+    agents = json.loads(os.environ["AJ"])
+    agent = next(a for a in agents.get("native", []) if a["name"] == "Fashion_Inventory_Alert_Processor")
+    have = {ids.get(i, i) for i in agent.get("tools", [])}
+    print(" ".join(t for t in ("create_restock_order", "open_servicenow_ticket") if t not in have))
+except Exception:
+    pass
+PYEOF
+)
+      for t in $UNATTACHED; do
+        warn "agent does not have action tool $t" "Section 4.7, step 5"
+      done
+    fi
+  else
+    bad "agent missing" "Section 4.5"; S4_PENDING=1
+  fi
+fi
+
+# ── 6. Optional end-to-end pipeline test ─────────────────────────────────────
+if [ "$RUN_E2E" -eq 1 ]; then
+  head_ "6. End-to-end pipeline (--e2e)"
+  if [ -z "${CONSUMER:-}" ] || [ ! -f "$CONSUMER/produce_inventory_events.py" ]; then
+    bad "cannot run e2e" "workspace not found"
+  elif [ "$FAIL" -gt 0 ]; then
+    warn "skipping e2e" "fix the failures above first"
+  else
+    echo "  Starting agent consumer (60s budget)..."
+    ( cd "$CONSUMER" && run_limited 60 uv run consume_velocity_alerts_with_agent.py ) > /tmp/lab-e2e-consumer.log 2>&1 &
+    CPID=$!
+    sleep 10
+    echo "  Producing test events..."
+    if ( cd "$CONSUMER" && uv run produce_inventory_events.py \
+          --csv-file ../fashion-inventory-setup/data/test_winter_jacket_spike.csv ) \
+          > /tmp/lab-e2e-producer.log 2>&1; then
+      ok "test producer completed"
+    else
+      bad "producer failed" "see /tmp/lab-e2e-producer.log"
+    fi
+    echo "  Waiting for the agent to respond (up to 45s)..."
+    for _ in $(seq 1 45); do
+      grep -q "RESULT PUBLISHED" /tmp/lab-e2e-consumer.log 2>/dev/null && break
+      sleep 1
+    done
+    wait $CPID 2>/dev/null
+    if grep -q "AGENT DECISION READY" /tmp/lab-e2e-consumer.log 2>/dev/null; then
+      ok "agent returned a schema-valid decision"
+    else
+      bad "no agent decision observed" "see /tmp/lab-e2e-consumer.log"
+    fi
+    grep -q "RESULT PUBLISHED" /tmp/lab-e2e-consumer.log 2>/dev/null \
+      && ok "decision published to fashion.agent.responses" \
+      || bad "nothing published downstream" "see /tmp/lab-e2e-consumer.log"
+  fi
+fi
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+printf '\n%s────────────────────────────────────────────────%s\n' "$BOLD" "$RST"
+printf '  %s%d passed%s   %s%d failed%s   %s%d warnings%s\n' \
+  "$GRN" "$PASS" "$RST" "$RED" "$FAIL" "$RST" "$YLW" "$WARN" "$RST"
+
+if [ "$FAIL" -eq 0 ]; then
+  printf '  %sReady to run the lab.%s\n' "$GRN" "$RST"
+  [ "$RUN_E2E" -eq 0 ] && printf '  %sTip: after Sections 4 and 5, bash check-lab.sh --e2e runs a real end-to-end test (it writes orders and tickets).%s\n' "$DIM" "$RST"
+else
+  printf '  %sNot ready yet — still to do:%s\n' "$RED" "$RST"
+  for i in "${FAILED_ITEMS[@]}"; do printf '    · %s\n' "$i"; done
+  [ "$S4_PENDING" -eq 1 ] && printf '  %sA missing tool, knowledge base or agent just means Section 4 is not done yet.%s\n' "$DIM" "$RST"
+fi
+printf '%s────────────────────────────────────────────────%s\n\n' "$BOLD" "$RST"
+
+[ "$FAIL" -eq 0 ] || exit 1

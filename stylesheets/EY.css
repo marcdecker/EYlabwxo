@@ -1,0 +1,272 @@
+/* ============================================================
+   EY 2026 theme for MkDocs Material
+   Palette: EY yellow #FFE600 + EY near-black #0E171E (from the logo)
+   ============================================================ */
+
+:root {
+  --os-yellow:       #ffe600;  /* EY yellow — accents, buttons, header */
+  --os-yellow-deep:  #ffd800;  /* hover state for yellow fills */
+  --os-grey:         #2e2e38;  /* EY dark grey — links, secondary fills */
+  --os-ink:          #0e171e;  /* EY near-black (logo ink) */
+  --os-paper:        #f3f3f1;  /* logo lockup background */
+
+  /* Rule / bar accent — solid EY yellow */
+  --os-gradient: linear-gradient(90deg, var(--os-yellow) 0%, var(--os-yellow) 100%);
+
+  /* Material reads these. Yellow header => dark foreground text/icons. */
+  --md-primary-fg-color:        var(--os-yellow);
+  --md-primary-fg-color--light: var(--os-yellow);
+  --md-primary-fg-color--dark:  var(--os-yellow-deep);
+  --md-primary-bg-color:        var(--os-ink);
+  --md-primary-bg-color--light: #0e171eb3;
+
+  --md-accent-fg-color:             var(--os-grey);
+  --md-accent-fg-color--transparent: #2e2e3814;
+}
+
+/* ── Light scheme ─────────────────────────────────────────── */
+[data-md-color-scheme="default"] {
+  --md-typeset-a-color: var(--os-grey);
+}
+
+/* Yellow on white is unreadable as text, so links are dark with a yellow underline. */
+[data-md-color-scheme="default"] .md-content .md-typeset a:not(.md-button):not(.headerlink) {
+  text-decoration: underline;
+  text-decoration-color: var(--os-yellow);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* ── Dark scheme — near-black ground, yellow accents ──────── */
+[data-md-color-scheme="slate"] {
+  --md-hue: 210;
+
+  --md-primary-fg-color:        var(--os-ink);
+  --md-primary-fg-color--light: var(--os-grey);
+  --md-primary-fg-color--dark:  #000000;
+  --md-primary-bg-color:        var(--os-yellow);
+  --md-primary-bg-color--light: #ffe600b3;
+
+  --md-accent-fg-color:              var(--os-yellow);
+  --md-accent-fg-color--transparent: #ffe6001f;
+
+  --md-default-bg-color: var(--os-ink);
+  --md-typeset-a-color:  var(--os-yellow);
+}
+
+/* Header and tabs: guarantee contrast against the primary colour. */
+.md-header,
+.md-tabs {
+  color: var(--md-primary-bg-color);
+}
+
+/* ── Yellow rule under the header ─────────────────────────── */
+.md-header {
+  box-shadow: none;
+  border-bottom: 3px solid var(--os-yellow);
+}
+
+/* ── Buttons: EY yellow with dark text ────────────────────── */
+.md-typeset .md-button--primary {
+  background: var(--os-yellow);
+  border-color: var(--os-yellow);
+  color: var(--os-ink);
+}
+
+.md-typeset .md-button--primary:hover,
+.md-typeset .md-button--primary:focus {
+  background: var(--os-ink);
+  border-color: var(--os-ink);
+  color: var(--os-yellow);
+}
+
+.md-typeset .md-button:not(.md-button--primary):hover,
+.md-typeset .md-button:not(.md-button--primary):focus {
+  background: var(--os-yellow);
+  border-color: var(--os-yellow);
+  color: var(--os-ink);
+}
+
+/* ── Headings keep their normal colour; the accent is a bar ─ */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset h2 {
+  position: relative;
+  padding-bottom: .3rem;
+}
+
+.md-typeset h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 3.5rem;
+  height: 2px;
+  background: var(--os-gradient);
+  border-radius: 2px;
+}
+
+/* ── Hero images sit on a subtle brand-tinted panel ───────── */
+.md-typeset p[align="center"] {
+  padding: 1.25rem 0;
+  border-radius: .4rem;
+  background: radial-gradient(ellipse at center, #ffe60026, transparent 70%);
+}
+
+/* ── Official event lockup: a complete, self-contained box ── */
+/* The supplied PNG has an opaque #f3f3f1 ground, so the box uses the same
+   colour and the mark sits inside it at natural size — no stretching, and no
+   hard edge where the artwork stops. Identical in light and dark themes,
+   because the mark's dark ink needs a light ground to stay legible. */
+.md-typeset p.os-lockup {
+  margin: 0 0 1.75rem;
+  padding: 2rem 1.5rem;
+  background: var(--os-paper);
+  border: 1px solid #0000000f;
+  border-radius: .5rem;
+  text-align: center;
+  line-height: 0;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 1px 3px #0000000f;
+}
+
+/* EY yellow bar closes the bottom of the box. */
+.md-typeset p.os-lockup::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--os-gradient);
+}
+
+.md-typeset p.os-lockup img {
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@media screen and (max-width: 44.98em) {
+  .md-typeset p.os-lockup { padding: 1.25rem .75rem; }
+}
+
+/* ── Tables: branded header row ───────────────────────────── */
+.md-typeset table:not([class]) th {
+  background: var(--os-yellow);
+  color: var(--os-ink);
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: var(--os-yellow);
+  color: var(--os-ink);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.md-footer-meta {
+  background: var(--os-ink);
+}
+
+
+/* ── Tickable progress checkboxes ─────────────────────────── */
+.md-typeset .progress-bar-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: .4rem 0 .3rem;
+  font-size: .72rem;
+}
+
+.md-typeset .progress-count {
+  font-weight: 700;
+  color: var(--os-grey);
+  letter-spacing: .02em;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .progress-count {
+  color: var(--os-yellow);
+}
+
+.md-typeset .progress-bar-row.is-complete .progress-count::after {
+  content: " ✓";
+}
+
+.md-typeset .progress-reset {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  background: transparent;
+  color: var(--md-default-fg-color--light);
+  border-radius: .8rem;
+  padding: .05rem .5rem;
+  font-size: .64rem;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.md-typeset .progress-reset:hover {
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
+}
+
+
+
+/* ── Make the custom checkboxes visible AND clickable ─────── */
+/* Material hides the real input (opacity:0; z-index:-1) and paints the box as
+   a masked icon in --md-default-fg-color--lightest, which is near-invisible.
+   Give the box real contrast, and lift the input above the page so it can
+   actually be clicked. */
+
+.md-typeset .task-list-indicator::before {
+  background-color: var(--os-grey);
+  opacity: .45;
+  transition: opacity .15s ease, background-color .15s ease;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .task-list-indicator::before {
+  background-color: var(--os-yellow);
+  opacity: .55;
+}
+
+/* Ticked */
+.md-typeset [type="checkbox"]:checked + .task-list-indicator::before {
+  background-color: var(--os-ink);
+  opacity: 1;
+}
+
+[data-md-color-scheme="slate"] .md-typeset [type="checkbox"]:checked + .task-list-indicator::before {
+  background-color: var(--os-yellow);
+  opacity: 1;
+}
+
+/* Lift the input so clicks land on it, sized over the drawn box. */
+.md-typeset .task-list-item.is-tickable [type="checkbox"] {
+  z-index: 2;
+  opacity: 0;
+  cursor: pointer;
+  width: 1.4em;
+  height: 1.4em;
+  top: .3em;
+}
+
+[dir="ltr"] .md-typeset .task-list-item.is-tickable [type="checkbox"] { left: -1.6em; }
+[dir="rtl"] .md-typeset .task-list-item.is-tickable [type="checkbox"] { right: -1.6em; }
+
+.md-typeset .task-list-item.is-tickable:hover .task-list-indicator::before {
+  opacity: .8;
+}
+
+/* Ticked rows fade, but stay readable. */
+.md-typeset .task-list-item.is-done {
+  opacity: .6;
+}
