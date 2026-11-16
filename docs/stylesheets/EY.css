@@ -1,90 +1,93 @@
 /* ============================================================
-   OpenSlava 2026 theme for MkDocs Material
-   Palette sampled from openslava.sk/2026 (Accenture purple family)
+   EY 2026 theme for MkDocs Material
+   Palette: EY yellow #FFE600 + EY near-black #0E171E (from the logo)
    ============================================================ */
 
 :root {
-  --os-purple:       #a100ff;  /* Accenture purple — nav hover / active */
-  --os-purple-deep:  #7500c0;  /* buttons, icons, CTA text */
-  --os-purple-dark:  #420b93;  /* dark button fill */
-  --os-orchid:       #dd81ff;  /* workshop track, gradient start */
-  --os-blue:         #1238ff;  /* workshop track, gradient end */
-  --os-ink:          #0a0a0a;  /* page black */
-  --os-logo-ink:     #460073;  /* OPENSLAVA`26 wordmark purple */
+  --os-yellow:       #ffe600;  /* EY yellow — accents, buttons, header */
+  --os-yellow-deep:  #ffd800;  /* hover state for yellow fills */
+  --os-grey:         #2e2e38;  /* EY dark grey — links, secondary fills */
+  --os-ink:          #0e171e;  /* EY near-black (logo ink) */
   --os-paper:        #f3f3f1;  /* logo lockup background */
 
-  /* The site's workshop-track gradient — this lab is a Day 1 workshop */
-  --os-gradient: linear-gradient(90deg, var(--os-orchid) 0%, var(--os-blue) 100%);
+  /* Rule / bar accent — solid EY yellow */
+  --os-gradient: linear-gradient(90deg, var(--os-yellow) 0%, var(--os-yellow) 100%);
 
-  /* Material reads these. Defined unconditionally so the header always
-     has a background and readable text, whatever the colour scheme. */
-  --md-primary-fg-color:        var(--os-purple-deep);
-  --md-primary-fg-color--light: var(--os-purple);
-  --md-primary-fg-color--dark:  var(--os-purple-dark);
-  --md-primary-bg-color:        #ffffff;
-  --md-primary-bg-color--light: #ffffffb3;
+  /* Material reads these. Yellow header => dark foreground text/icons. */
+  --md-primary-fg-color:        var(--os-yellow);
+  --md-primary-fg-color--light: var(--os-yellow);
+  --md-primary-fg-color--dark:  var(--os-yellow-deep);
+  --md-primary-bg-color:        var(--os-ink);
+  --md-primary-bg-color--light: #0e171eb3;
 
-  --md-accent-fg-color:             var(--os-purple);
-  --md-accent-fg-color--transparent: #a100ff14;
+  --md-accent-fg-color:             var(--os-grey);
+  --md-accent-fg-color--transparent: #2e2e3814;
 }
 
 /* ── Light scheme ─────────────────────────────────────────── */
 [data-md-color-scheme="default"] {
-  --md-typeset-a-color: var(--os-purple-deep);
+  --md-typeset-a-color: var(--os-grey);
 }
 
-/* ── Dark scheme — mirrors the conference site's near-black ── */
+/* Yellow on white is unreadable as text, so links are dark with a yellow underline. */
+[data-md-color-scheme="default"] .md-content .md-typeset a:not(.md-button):not(.headerlink) {
+  text-decoration: underline;
+  text-decoration-color: var(--os-yellow);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* ── Dark scheme — near-black ground, yellow accents ──────── */
 [data-md-color-scheme="slate"] {
-  --md-hue: 265;
+  --md-hue: 210;
 
   --md-primary-fg-color:        var(--os-ink);
-  --md-primary-fg-color--light: var(--os-purple);
+  --md-primary-fg-color--light: var(--os-grey);
   --md-primary-fg-color--dark:  #000000;
-  --md-primary-bg-color:        #ffffff;
+  --md-primary-bg-color:        var(--os-yellow);
+  --md-primary-bg-color--light: #ffe600b3;
 
-  --md-accent-fg-color:              var(--os-orchid);
-  --md-accent-fg-color--transparent: #dd81ff1f;
+  --md-accent-fg-color:              var(--os-yellow);
+  --md-accent-fg-color--transparent: #ffe6001f;
 
   --md-default-bg-color: var(--os-ink);
-  --md-typeset-a-color:  var(--os-orchid);
+  --md-typeset-a-color:  var(--os-yellow);
 }
 
-/* Header and tabs: keep Material's own colours, just guarantee contrast. */
+/* Header and tabs: guarantee contrast against the primary colour. */
 .md-header,
 .md-tabs {
   color: var(--md-primary-bg-color);
 }
 
-/* ── Gradient rule under the header, as on the site ───────── */
+/* ── Yellow rule under the header ─────────────────────────── */
 .md-header {
   box-shadow: none;
-  border-bottom: 3px solid transparent;
-  border-image-source: var(--os-gradient);
-  border-image-slice: 1;
+  border-bottom: 3px solid var(--os-yellow);
 }
 
-/* ── Buttons pick up the brand purple ─────────────────────── */
+/* ── Buttons: EY yellow with dark text ────────────────────── */
 .md-typeset .md-button--primary {
-  background: var(--os-purple-deep);
-  border-color: var(--os-purple-deep);
-  color: #fff;
+  background: var(--os-yellow);
+  border-color: var(--os-yellow);
+  color: var(--os-ink);
 }
 
 .md-typeset .md-button--primary:hover,
 .md-typeset .md-button--primary:focus {
-  background: var(--os-purple);
-  border-color: var(--os-purple);
-  color: #fff;
+  background: var(--os-ink);
+  border-color: var(--os-ink);
+  color: var(--os-yellow);
 }
 
 .md-typeset .md-button:not(.md-button--primary):hover,
 .md-typeset .md-button:not(.md-button--primary):focus {
-  background: var(--os-purple);
-  border-color: var(--os-purple);
-  color: #fff;
+  background: var(--os-yellow);
+  border-color: var(--os-yellow);
+  color: var(--os-ink);
 }
 
-/* ── Headings keep their normal colour; the gradient is a bar ─ */
+/* ── Headings keep their normal colour; the accent is a bar ─ */
 .md-typeset h1,
 .md-typeset h2,
 .md-typeset h3 {
@@ -116,14 +119,14 @@
 .md-typeset p[align="center"] {
   padding: 1.25rem 0;
   border-radius: .4rem;
-  background: radial-gradient(ellipse at center, #a100ff14, transparent 70%);
+  background: radial-gradient(ellipse at center, #ffe60026, transparent 70%);
 }
 
 /* ── Official event lockup: a complete, self-contained box ── */
 /* The supplied PNG has an opaque #f3f3f1 ground, so the box uses the same
    colour and the mark sits inside it at natural size — no stretching, and no
    hard edge where the artwork stops. Identical in light and dark themes,
-   because the mark's #460073 ink needs a light ground to stay legible. */
+   because the mark's dark ink needs a light ground to stay legible. */
 .md-typeset p.os-lockup {
   margin: 0 0 1.75rem;
   padding: 2rem 1.5rem;
@@ -137,7 +140,7 @@
   box-shadow: 0 1px 3px #0000000f;
 }
 
-/* Workshop-track gradient closes the bottom of the box. */
+/* EY yellow bar closes the bottom of the box. */
 .md-typeset p.os-lockup::after {
   content: "";
   position: absolute;
@@ -162,12 +165,13 @@
 
 /* ── Tables: branded header row ───────────────────────────── */
 .md-typeset table:not([class]) th {
-  background: var(--os-purple-deep);
-  color: #fff;
+  background: var(--os-yellow);
+  color: var(--os-ink);
 }
 
 [data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
-  background: var(--os-purple-dark);
+  background: var(--os-yellow);
+  color: var(--os-ink);
 }
 
 /* ── Footer ───────────────────────────────────────────────── */
@@ -187,12 +191,12 @@
 
 .md-typeset .progress-count {
   font-weight: 700;
-  color: var(--os-purple-deep);
+  color: var(--os-grey);
   letter-spacing: .02em;
 }
 
 [data-md-color-scheme="slate"] .md-typeset .progress-count {
-  color: var(--os-orchid);
+  color: var(--os-yellow);
 }
 
 .md-typeset .progress-bar-row.is-complete .progress-count::after {
@@ -211,8 +215,8 @@
 }
 
 .md-typeset .progress-reset:hover {
-  border-color: var(--os-purple);
-  color: var(--os-purple);
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
 }
 
 
@@ -224,24 +228,24 @@
    actually be clicked. */
 
 .md-typeset .task-list-indicator::before {
-  background-color: var(--os-purple-deep);
+  background-color: var(--os-grey);
   opacity: .45;
   transition: opacity .15s ease, background-color .15s ease;
 }
 
 [data-md-color-scheme="slate"] .md-typeset .task-list-indicator::before {
-  background-color: var(--os-orchid);
+  background-color: var(--os-yellow);
   opacity: .55;
 }
 
 /* Ticked */
 .md-typeset [type="checkbox"]:checked + .task-list-indicator::before {
-  background-color: var(--os-purple);
+  background-color: var(--os-ink);
   opacity: 1;
 }
 
 [data-md-color-scheme="slate"] .md-typeset [type="checkbox"]:checked + .task-list-indicator::before {
-  background-color: var(--os-orchid);
+  background-color: var(--os-yellow);
   opacity: 1;
 }
 

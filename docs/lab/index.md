@@ -280,14 +280,14 @@ stage. Start it now, before anything is built, to see the finished pipeline runn
 
     ```bash
     cd retail-inventory-optimization/fashion-inventory-consumer
-    curl -fsSLO https://irpk026.github.io/docs-advanced/lab/pipeline_dashboard.py
+    curl -fsSLO https://github.com/marcdecker/EYlabwxo/blob/main/pipeline_dashboard.py
     ```
 
 === "Windows"
 
     ```powershell
     cd retail-inventory-optimization/fashion-inventory-consumer
-    Invoke-WebRequest https://irpk026.github.io/docs-advanced/lab/pipeline_dashboard.py -OutFile pipeline_dashboard.py
+    Invoke-WebRequest https://github.com/marcdecker/EYlabwxo/blob/main/pipeline_dashboard.py -OutFile pipeline_dashboard.py
     ```
 
 Or [:material-download: download `pipeline_dashboard.py`](pipeline_dashboard.py) and move
@@ -1079,14 +1079,14 @@ the Flink alert.
 
     ```bash
     mkdir -p stock_action_tools
-    curl -fsSL -o stock_action_tools/stock_actions.py https://irpk026.github.io/docs-advanced/lab/stock_actions.py
+    curl -fsSL -o stock_action_tools/stock_actions.py https://github.com/marcdecker/EYlabwxo/blob/main/stock_actions.py
     ```
 
 === "Windows"
 
     ```powershell
     New-Item -ItemType Directory -Force stock_action_tools | Out-Null
-    Invoke-WebRequest https://irpk026.github.io/docs-advanced/lab/stock_actions.py -OutFile stock_action_tools/stock_actions.py
+    Invoke-WebRequest https://github.com/marcdecker/EYlabwxo/blob/main/stock_actions.py -OutFile stock_action_tools/stock_actions.py
     ```
 
 Or [:material-download: download `stock_actions.py`](stock_actions.py) into a new

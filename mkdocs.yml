@@ -1,6 +1,6 @@
 site_name: Agentic AI, Live
 site_description: >-
-  OpenSlava 2026 hands-on lab — Agentic AI, Live: Orchestrating Agents with Real-Time
+  EY 2026 hands-on lab — Agentic AI, Live: Orchestrating Agents with Real-Time
   Data. Build an event-driven AI pipeline with Confluent Cloud, Flink SQL and IBM
   watsonx Orchestrate, using IBM Bob as your pair programmer.
 site_author: Ivor Rothwell, IBM
@@ -97,7 +97,7 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra_css:
-  - stylesheets/openslava.css
+  - stylesheets/EY.css
 
 extra_javascript:
   - javascripts/progress.js
@@ -108,4 +108,4 @@ extra:
       link: https://github.com/juseljuk/bobchestrate-workshop
       name: Workshop repository
 
-copyright: OpenSlava 2026 · Agentic AI, Live — IBM
+copyright: EY 2026 · Agentic AI, Live — IBM

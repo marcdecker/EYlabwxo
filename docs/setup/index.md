@@ -57,7 +57,7 @@ Enter your name, country and a password, then accept the terms.
 
 | Setting | Value |
 | --- | --- |
-| Name | `openslava-lab-<yourname>` |
+| Name | `EY-lab-<yourname>` |
 | Region | **Frankfurt (eu-de)** |
 
 !!! danger "Use Frankfurt"
@@ -391,7 +391,7 @@ Access Management (IAM) centre, where you create a named IBM Cloud API key.
         directly from the IBM Cloud resources page — they will not work with the ADK.
 
 2. The IBM Cloud IAM centre opens. Click **Create**
-3. Enter a descriptive **Name** for the key (for example `openslava-lab-adk`) and
+3. Enter a descriptive **Name** for the key (for example `EY-lab-adk`) and
    an optional description, then click **Create**
 4. Click **Copy** or **Download** immediately — the key value is **shown only once**
    and cannot be retrieved afterwards
@@ -411,13 +411,13 @@ Access Management (IAM) centre, where you create a named IBM Cloud API key.
 
     ```bash
     # Add your environment
-    orchestrate env add -n openslava-lab -u <your-instance-url>
+    orchestrate env add -n EY-lab -u <your-instance-url>
 
     # Activate it
-    orchestrate env activate openslava-lab -a <your-api-key>
+    orchestrate env activate EY-lab -a <your-api-key>
     ```
 
-    You should see: `[INFO] Environment 'openslava-lab' is now active`
+    You should see: `[INFO] Environment 'EY-lab' is now active`
 
 === "Using Bob"
 
@@ -471,7 +471,7 @@ Any output without an error — including an empty list — means you're connect
     Your wxO session has expired — sessions last two hours. Re-activate:
 
     ```bash
-    orchestrate env activate openslava-lab -a <your-api-key>
+    orchestrate env activate EY-lab -a <your-api-key>
     ```
 
 ??? failure "Bob isn't responding, or MCP servers show red"
@@ -508,10 +508,10 @@ Any output without an error — including an empty list — means you're connect
 orchestrate --version
 
 # Add wxO environment
-orchestrate env add -n openslava-lab -u <instance-url>
+orchestrate env add -n EY-lab -u <instance-url>
 
 # Activate wxO environment (re-run every 2 hours)
-orchestrate env activate openslava-lab -a <api-key>
+orchestrate env activate EY-lab -a <api-key>
 
 # List environments, agents, tools, connections
 orchestrate env list

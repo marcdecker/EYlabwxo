@@ -1,7 +1,7 @@
 # Before you arrive
 
-**About 15 minutes at home saves you the slowest part of the session.** Set up IBM Bob and
-install the tools before **Wednesday 14 October, 15:00**. Verification emails and
+**About 30 minutes at home saves you the slowest part of the session.** Set up IBM Bob and
+install the tools before **Tuesday 17 November, 9:30**. Verification emails and
 installers take the longest, so get them out of the way at home. You'll get the workshop
 files and the step-by-step guide in the room.
 
@@ -43,13 +43,13 @@ files and the step-by-step guide in the room.
 
 ---
 
-## 3. Optional: watsonx Orchestrate (about 10 minutes)
+## 3. watsonx Orchestrate (about 10 minutes)
 
 Do this at home if you have time — otherwise we do it together at the start of the session.
 
 - [ ] **Start the trial** with the **same IBMid**:
   [ibm.com/products/watsonx-orchestrate](https://www.ibm.com/products/watsonx-orchestrate)
-  → **Start your free trial**. Name the instance `openslava-lab-<yourname>` and choose
+  → **Start your free trial**. Name the instance `ey-lab-<yourname>` and choose
   **Frankfurt (eu-de)**. You're done when you see the watsonx Orchestrate chat and the
   **Build** menu.
 - [ ] **Get your credentials**: **profile icon** → **Settings** → **API details**. Copy the
@@ -72,7 +72,6 @@ Do this at home if you have time — otherwise we do it together at the start of
 - [ ] Bob IDE opens and you're signed in
 - [ ] The watsonx Orchestrate ADK extension is installed in Bob IDE
 - [ ] `python3 --version` shows 3.12 or 3.13, and `uv --version` prints a version
-- [ ] *Optional:* you can log in to watsonx Orchestrate, and your instance URL and API key are saved
+- [ ] watsonx Orchestrate trial + credentials: you can log in, and your instance URL and API key are saved
 
-Stuck on any step? Don't worry — bring your laptop and we'll fix it in the first ten
-minutes. Note which step failed and the error message.
+Stuck on any step? Don't worry — note the step and the error message, and we'll help fix it before the watsonx Trainingday.

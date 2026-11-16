@@ -1,4 +1,4 @@
-# Instructor notes — OpenSlava 2026
+# Instructor notes — EY 2026
 
 **Not published.** This file lives outside `docs/`, so it never reaches the built site.
 Keep anything attendees shouldn't read in here, not in `docs/`.

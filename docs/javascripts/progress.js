@@ -13,7 +13,7 @@
 (function () {
   "use strict";
 
-  var STORE = "openslava_lab_progress";
+  var STORE = "EY_lab_progress";
 
   function load() {
     try { return JSON.parse(localStorage.getItem(STORE) || "{}"); }

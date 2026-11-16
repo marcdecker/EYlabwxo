@@ -1,5 +1,5 @@
 <p class="os-lockup" markdown>
-![OpenSlava 2026 — The future is agentic. The source is human.](assets/openslava-2026.png)
+![EY 2026 — Shape the future with confidence](assets/EY-2026.png)
 </p>
 
 # Agentic AI, Live: Orchestrating Agents with Real-Time Data
@@ -7,13 +7,6 @@
 <p align="center">
   <img src="assets/BWS_Advanced.png" alt="Advanced watsonx Orchestrate workshop" width="560">
 </p>
-
-!!! abstract "Your session"
-    **OpenSlava 2026** · Day 1, Wednesday 14 October · **15:00–17:30** · **Room 2**
-    Interactive 2.5-hour hands-on lab · Intermediate · Technical
-    Presented by **Ivor Rothwell**, IBM
-
-    [View in the OpenSlava programme ↗](https://www.openslava.sk/2026/#/program/05da314c-f645-4755-84bd-0fc42b8cb028)
 
 AI agents are easy to prototype. They're hard to trust in production — because production
 data moves, and most agents don't notice. This lab is about closing that gap.
